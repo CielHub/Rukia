@@ -4,15 +4,15 @@ CARRERA-HUB v2
 Core Entry Point
 """
 
-from menu import Menu
-from package_manager import PackageManager
-from private_server_manager import PrivateServerManager
-from launcher import Launcher
-from verification_engine import VerificationEngine
-from monitor_engine import MonitorEngine
-from error_detection_engine import ErrorDetectionEngine
-from recovery_engine import RecoveryEngine
-from dashboard import Dashboard
+from core.menu import Menu
+from core.package_manager import PackageManager
+from core.private_server_manager import PrivateServerManager
+from core.launcher import Launcher
+from core.verification_engine import VerificationEngine
+from core.monitor_engine import MonitorEngine
+from core.error_detection_engine import ErrorDetectionEngine
+from core.recovery_engine import RecoveryEngine
+from core.dashboard import Dashboard
 
 
 class CarreraHub:
