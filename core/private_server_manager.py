@@ -1,7 +1,7 @@
 """
 private_server_manager.py
 CARRERA-HUB v2
-Core Private Server Manager
+Bug Fix #1
 """
 
 from __future__ import annotations
@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
+from urllib.parse import urlparse, parse_qs
 
 CONFIG_FILE = Path("private_server.json")
 
@@ -20,26 +21,46 @@ class PrivateServerManager:
         self.deeplink = ""
 
     def validate(self, link: str) -> bool:
-        return bool(re.search(r"(roblox\.com|www\.roblox\.com).*(privateServerLinkCode|code=)", link))
+        return (
+            "roblox.com" in link.lower()
+            and ("share?" in link.lower() or "privateserverlinkcode" in link.lower())
+        )
+
+    def extract(self, link: str):
+        parsed = urlparse(link)
+        query = parse_qs(parsed.query)
+
+        code = (
+            query.get("privateServerLinkCode", [None])[0]
+            or query.get("code", [None])[0]
+        )
+
+        place_id = query.get("placeId", [None])[0]
+
+        return {
+            "code": code,
+            "place_id": place_id,
+        }
 
     def convert_to_deeplink(self, link: str) -> str:
-        place = re.search(r"placeId=(\d+)", link)
-        code = re.search(r"(?:privateServerLinkCode|code)=([A-Za-z0-9_-]+)", link)
+        data = self.extract(link)
 
-        if not (place and code):
-            raise ValueError("Invalid private server link.")
+        if not data["code"]:
+            raise ValueError("Private Server code not found.")
 
-        place_id = place.group(1)
-        access_code = code.group(1)
+        # New Roblox share links often do not expose placeId.
+        # Save a temporary deeplink containing only the link code.
+        if data["place_id"]:
+            return (
+                f"roblox://placeID={data['place_id']}"
+                f"&linkCode={data['code']}"
+            )
 
-        return (
-            f"roblox://placeID={place_id}"
-            f"&linkCode={access_code}"
-        )
+        return f"roblox://navigation/join?linkCode={data['code']}"
 
     def save(self, link: str):
         if not self.validate(link):
-            raise ValueError("Unsupported Roblox private server link.")
+            raise ValueError("Unsupported Roblox link.")
 
         self.private_server_link = link
         self.deeplink = self.convert_to_deeplink(link)
@@ -65,14 +86,12 @@ class PrivateServerManager:
         return data
 
     def show(self):
-        print("\n=== Private Server ===")
-        print("Link     :", self.private_server_link or "-")
-        print("Deeplink :", self.deeplink or "-")
+        print("\nPrivate Server Link :", self.private_server_link or "-")
+        print("Generated Deeplink  :", self.deeplink or "-")
 
 
 if __name__ == "__main__":
     manager = PrivateServerManager()
-    link = input("Paste Private Server Link: ").strip()
-    manager.save(link)
+    manager.save(input("Private Server Link: ").strip())
     manager.show()
-  
+    
